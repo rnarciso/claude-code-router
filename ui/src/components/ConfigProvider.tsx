@@ -90,19 +90,19 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
             powerline: { modules: [] }
           },
           Router: data.Router && typeof data.Router === 'object' ? {
-            default: typeof data.Router.default === 'string' ? data.Router.default : '',
-            background: typeof data.Router.background === 'string' ? data.Router.background : '',
-            think: typeof data.Router.think === 'string' ? data.Router.think : '',
-            longContext: typeof data.Router.longContext === 'string' ? data.Router.longContext : '',
+            default: Array.isArray(data.Router.default) ? data.Router.default : [],
+            background: Array.isArray(data.Router.background) ? data.Router.background : [],
+            think: Array.isArray(data.Router.think) ? data.Router.think : [],
+            longContext: Array.isArray(data.Router.longContext) ? data.Router.longContext : [],
             longContextThreshold: typeof data.Router.longContextThreshold === 'number' ? data.Router.longContextThreshold : 60000,
-            webSearch: typeof data.Router.webSearch === 'string' ? data.Router.webSearch : ''
+            webSearch: Array.isArray(data.Router.webSearch) ? data.Router.webSearch : []
           } : {
-            default: '',
-            background: '',
-            think: '',
-            longContext: '',
+            default: [],
+            background: [],
+            think: [],
+            longContext: [],
             longContextThreshold: 60000,
-            webSearch: ''
+            webSearch: []
           }
         };
         
@@ -126,12 +126,12 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
             Providers: [],
             StatusLine: undefined,
             Router: {
-              default: '',
-              background: '',
-              think: '',
-              longContext: '',
+              default: [],
+              background: [],
+              think: [],
+              longContext: [],
               longContextThreshold: 60000,
-              webSearch: ''
+              webSearch: []
             }
           });
           setError(err as Error);

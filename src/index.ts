@@ -129,11 +129,35 @@ async function run(options: RunOptions = {}) {
       apiKeyAuth(config)(req, reply, done).catch(reject);
     });
   });
-  server.addHook("preHandler", async (req, reply) => {
-    if (req.url.startsWith("/v1/messages")) {
-      router(req, reply, config);
-    }
-  });
+  const route = server.app.routes.find((r: any) => r.path === '/v1/messages');
+  if (route) {
+    const originalHandler = route.handler;
+    route.handler = async (req: any, reply: any) => {
+      const sendRequest = (req: any, reply: any) => {
+        return new Promise((resolve, reject) => {
+          const res = {
+            ...reply,
+            send: (payload: any) => {
+              resolve(payload);
+            },
+            status: (code: number) => {
+              return {
+                send: (payload: any) => {
+                  reject({ code, payload });
+                }
+              }
+            }
+          };
+          originalHandler.call(server.app, req, res);
+        });
+      };
+      try {
+        await router(req, reply, config, sendRequest);
+      } catch (error: any) {
+        reply.status(500).send({ error: error.message });
+      }
+    };
+  }
   server.addHook("onSend", (req, reply, payload, done) => {
     if (req.sessionId && req.url.startsWith("/v1/messages")) {
       if (payload instanceof ReadableStream) {

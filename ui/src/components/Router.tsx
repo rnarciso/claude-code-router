@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useConfig } from "./ConfigProvider";
-import { Combobox } from "./ui/combobox";
+import { MultiCombobox } from "./MultiCombobox";
 
 export function Router() {
   const { t } = useTranslation();
@@ -25,15 +25,15 @@ export function Router() {
 
   // Handle case where config.Router is null or undefined
   const routerConfig = config.Router || {
-    default: "",
-    background: "",
-    think: "",
-    longContext: "",
+    default: [],
+    background: [],
+    think: [],
+    longContext: [],
     longContextThreshold: 60000,
-    webSearch: ""
+    webSearch: []
   };
 
-  const handleRouterChange = (field: string, value: string | number) => {
+  const handleRouterChange = (field: string, value: string[] | number) => {
     // Handle case where config.Router might be null or undefined
     const currentRouter = config.Router || {};
     const newRouter = { ...currentRouter, [field]: value };
@@ -67,9 +67,9 @@ export function Router() {
       <CardContent className="flex-grow space-y-5 overflow-y-auto p-4">
         <div className="space-y-2">
           <Label>{t("router.default")}</Label>
-          <Combobox
+          <MultiCombobox
             options={modelOptions}
-            value={routerConfig.default || ""}
+            value={routerConfig.default || []}
             onChange={(value) => handleRouterChange("default", value)}
             placeholder={t("router.selectModel")}
             searchPlaceholder={t("router.searchModel")}
@@ -78,9 +78,9 @@ export function Router() {
         </div>
         <div className="space-y-2">
           <Label>{t("router.background")}</Label>
-          <Combobox
+          <MultiCombobox
             options={modelOptions}
-            value={routerConfig.background || ""}
+            value={routerConfig.background || []}
             onChange={(value) => handleRouterChange("background", value)}
             placeholder={t("router.selectModel")}
             searchPlaceholder={t("router.searchModel")}
@@ -89,9 +89,9 @@ export function Router() {
         </div>
         <div className="space-y-2">
           <Label>{t("router.think")}</Label>
-          <Combobox
+          <MultiCombobox
             options={modelOptions}
-            value={routerConfig.think || ""}
+            value={routerConfig.think || []}
             onChange={(value) => handleRouterChange("think", value)}
             placeholder={t("router.selectModel")}
             searchPlaceholder={t("router.searchModel")}
@@ -102,9 +102,9 @@ export function Router() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <Label>{t("router.longContext")}</Label>
-              <Combobox
+              <MultiCombobox
                 options={modelOptions}
-                value={routerConfig.longContext || ""}
+                value={routerConfig.longContext || []}
                 onChange={(value) => handleRouterChange("longContext", value)}
                 placeholder={t("router.selectModel")}
                 searchPlaceholder={t("router.searchModel")}
@@ -124,9 +124,9 @@ export function Router() {
         </div>
         <div className="space-y-2">
           <Label>{t("router.webSearch")}</Label>
-          <Combobox
+          <MultiCombobox
             options={modelOptions}
-            value={routerConfig.webSearch || ""}
+            value={routerConfig.webSearch || []}
             onChange={(value) => handleRouterChange("webSearch", value)}
             placeholder={t("router.selectModel")}
             searchPlaceholder={t("router.searchModel")}

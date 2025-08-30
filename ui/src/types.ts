@@ -12,12 +12,12 @@ export interface Provider {
 }
 
 export interface RouterConfig {
-    default: string;
-    background: string;
-    think: string;
-    longContext: string;
+    default: string[];
+    background: string[];
+    think: string[];
+    longContext: string[];
     longContextThreshold: number;
-    webSearch: string;
+    webSearch: string[];
     custom?: any;
 }
 

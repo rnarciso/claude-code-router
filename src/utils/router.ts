@@ -68,7 +68,7 @@ const getUseModel = async (
   tokenCount: number,
   config: any,
   lastUsage?: Usage | undefined
-) => {
+): Promise<string[]> => {
   if (req.body.model.includes(",")) {
     const [provider, model] = req.body.model.split(",");
     const finalProvider = config.Providers.find(
@@ -78,9 +78,9 @@ const getUseModel = async (
       (m: any) => m.toLowerCase() === model
     );
     if (finalProvider && finalModel) {
-      return `${finalProvider.name},${finalModel}`;
+      return [`${finalProvider.name},${finalModel}`];
     }
-    return req.body.model;
+    return [req.body.model];
   }
   // if tokenCount is greater than the configured threshold, use the long context model
   const longContextThreshold = config.Router.longContextThreshold || 60000;
@@ -91,7 +91,7 @@ const getUseModel = async (
   const tokenCountThreshold = tokenCount > longContextThreshold;
   if (
     (lastUsageThreshold || tokenCountThreshold) &&
-    config.Router.longContext
+    config.Router.longContext?.length
   ) {
     log(
       "Using long context model due to token count:",
@@ -113,33 +113,33 @@ const getUseModel = async (
         `<CCR-SUBAGENT-MODEL>${model[1]}</CCR-SUBAGENT-MODEL>`,
         ""
       );
-      return model[1];
+      return [model[1]];
     }
   }
   // If the model is claude-3-5-haiku, use the background model
   if (
     req.body.model?.startsWith("claude-3-5-haiku") &&
-    config.Router.background
+    config.Router.background?.length
   ) {
     log("Using background model for ", req.body.model);
     return config.Router.background;
   }
   // if exits thinking, use the think model
-  if (req.body.thinking && config.Router.think) {
+  if (req.body.thinking && config.Router.think?.length) {
     log("Using think model for ", req.body.thinking);
     return config.Router.think;
   }
   if (
     Array.isArray(req.body.tools) &&
     req.body.tools.some((tool: any) => tool.type?.startsWith("web_search")) &&
-    config.Router.webSearch
+    config.Router.webSearch?.length
   ) {
     return config.Router.webSearch;
   }
   return config.Router!.default;
 };
 
-export const router = async (req: any, _res: any, config: any) => {
+export const router = async (req: any, res: any, config: any, sendRequest: (req: any, res: any) => Promise<any>) => {
   // Parse sessionId from metadata.user_id
   if (req.body.metadata?.user_id) {
     const parts = req.body.metadata.user_id.split("_session_");
@@ -149,30 +149,43 @@ export const router = async (req: any, _res: any, config: any) => {
   }
   const lastMessageUsage = sessionUsageCache.get(req.sessionId);
   const { messages, system = [], tools }: MessageCreateParamsBase = req.body;
-  try {
-    const tokenCount = calculateTokenCount(
-      messages as MessageParam[],
-      system,
-      tools as Tool[]
-    );
 
-    let model;
-    if (config.CUSTOM_ROUTER_PATH) {
-      try {
-        const customRouter = require(config.CUSTOM_ROUTER_PATH);
-        req.tokenCount = tokenCount; // Pass token count to custom router
-        model = await customRouter(req, config);
-      } catch (e: any) {
-        log("failed to load custom router", e.message);
+  const tokenCount = calculateTokenCount(
+    messages as MessageParam[],
+    system,
+    tools as Tool[]
+  );
+
+  let models: string[] = [];
+  if (config.CUSTOM_ROUTER_PATH) {
+    try {
+      const customRouter = require(config.CUSTOM_ROUTER_PATH);
+      req.tokenCount = tokenCount; // Pass token count to custom router
+      const result = await customRouter(req, config);
+      if (typeof result === "string") {
+        models = [result];
+      } else if (Array.isArray(result)) {
+        models = result;
       }
+    } catch (e: any) {
+      log("failed to load custom router", e.message);
     }
-    if (!model) {
-      model = await getUseModel(req, tokenCount, config, lastMessageUsage);
-    }
-    req.body.model = model;
-  } catch (error: any) {
-    log("Error in router middleware:", error.message);
-    req.body.model = config.Router!.default;
   }
-  return;
+  if (models.length === 0) {
+    models = await getUseModel(req, tokenCount, config, lastMessageUsage);
+  }
+
+  let lastError: any = null;
+  for (const model of models) {
+    try {
+      log(`Trying model ${model}...`);
+      req.body.model = model;
+      return await sendRequest(req, res);
+    } catch (error: any) {
+      lastError = error;
+      log(`Model ${model} failed with error: ${error.message}. Trying next model.`);
+    }
+  }
+  log("All models failed.");
+  throw lastError;
 };
